@@ -2,6 +2,13 @@
 
 Flutter製のクロスプラットフォーム対応メモアプリケーション。テキスト入力と手書き入力の両方をサポートし、AI機能によるOCRとテキストリライトが可能です。
 
+## 🔗 リポジトリ
+
+**GitHub**: https://github.com/t2k2pp/MemoApp.git
+
+開発の進捗管理とバージョン管理にGitを使用しています。[CONTRIBUTING.md](CONTRIBUTING.md)でGit運用ガイドラインを確認できます。
+
+
 ## 特徴
 
 ### 📝 入力方式
