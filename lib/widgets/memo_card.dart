@@ -5,6 +5,8 @@ import '../models/stroke.dart';
 /// Widget for displaying a memo card in the grid/list view
 class MemoCard extends StatelessWidget {
   final Memo memo;
+  final VoidCallback onTap;
+  final VoidCallback? onShare;
   final VoidCallback? onDuplicate;
   final VoidCallback? onDelete;
 
@@ -12,6 +14,7 @@ class MemoCard extends StatelessWidget {
     super.key,
     required this.memo,
     required this.onTap,
+    this.onShare,
     this.onDuplicate,
     this.onDelete,
   });
@@ -124,13 +127,25 @@ class MemoCard extends StatelessWidget {
               child: PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
                 onSelected: (value) {
-                  if (value == 'duplicate') {
+                  if (value == 'share') {
+                    onShare?.call();
+                  } else if (value == 'duplicate') {
                     onDuplicate?.call();
                   } else if (value == 'delete') {
                     onDelete?.call();
                   }
                 },
                 itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'share',
+                    child: Row(
+                      children: [
+                        Icon(Icons.share, size: 20),
+                        SizedBox(width: 8),
+                        Text('共有'),
+                      ],
+                    ),
+                  ),
                   const PopupMenuItem(
                     value: 'duplicate',
                     child: Row(

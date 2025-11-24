@@ -107,6 +107,58 @@ class MemoProvider extends ChangeNotifier {
     }
 
     return memo;
+  }
+
+  /// Update an existing memo
+  Future<void> updateMemo(Memo memo) async {
+    final index = _memos.indexWhere((m) => m.id == memo.id);
+    if (index != -1) {
+      final updatedMemo = memo.copyWith(updatedAt: DateTime.now());
+      _memos[index] = updatedMemo;
+      
+      // Sort by updated date
+      _memos.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      
+      notifyListeners();
+
+      try {
+        await _storageService.saveMemo(updatedMemo);
+      } catch (e) {
+        _errorMessage = 'Failed to save memo: $e';
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Duplicate a memo
+  Future<void> duplicateMemo(Memo original) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final newMemo = original.copyWith(
+        id: _uuid.v4(),
+        title: '${original.title} のコピー',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      _memos.insert(0, newMemo);
+      notifyListeners();
+
+      await _storageService.saveMemo(newMemo);
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Failed to duplicate memo: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete a memo
+  Future<void> deleteMemo(String id) async {
+    final index = _memos.indexWhere((m) => m.id == id);
     if (index != -1) {
       _memos.removeAt(index);
       notifyListeners();

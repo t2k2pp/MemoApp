@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/memo_provider.dart';
 import '../widgets/memo_card.dart';
 import '../widgets/tag_chip.dart';
+import 'package:share_plus/share_plus.dart';
 import 'editor_screen.dart';
 import 'settings_screen.dart';
 
@@ -262,6 +263,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('メモを複製しました')),
                           );
+                        }
+                      },
+                      onShare: () {
+                        final text = [
+                          if (memo.title.isNotEmpty) memo.title,
+                          if (memo.content.isNotEmpty) memo.content,
+                          if (memo.ocrText != null && memo.ocrText!.isNotEmpty)
+                            '\n--- OCR Text ---\n${memo.ocrText}',
+                        ].join('\n\n');
+                        
+                        if (text.isNotEmpty) {
+                          Share.share(text);
                         }
                       },
                       onDelete: () =>
