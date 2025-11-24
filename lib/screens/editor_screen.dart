@@ -34,7 +34,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   void dispose() {
-    _saveMemo();
+    // Don't call _saveMemo here - it accesses Provider which is unsafe during dispose
+    // Memo is already saved on every change via onChanged callbacks
     _titleController.dispose();
     _contentController.dispose();
     _rewriteInstructionController.dispose();

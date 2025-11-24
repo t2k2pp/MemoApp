@@ -7,7 +7,8 @@ import 'ai_service.dart';
 class GeminiService implements AIService {
   final String apiKey;
   static const String baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta';
+      'https://generativelanguage.googleapis.com/v1';
+  static const String modelName = 'gemini-2.0-flash-exp';
 
   GeminiService({required this.apiKey});
 
@@ -20,7 +21,7 @@ class GeminiService implements AIService {
       final base64Image = base64Encode(imageBytes);
 
       final response = await http.post(
-        Uri.parse('$baseUrl/models/gemini-1.5-flash:generateContent?key=$apiKey'),
+        Uri.parse('$baseUrl/models/$modelName:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -65,7 +66,7 @@ class GeminiService implements AIService {
   Future<String> rewriteText(String text, String instruction) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/models/gemini-1.5-flash:generateContent?key=$apiKey'),
+        Uri.parse('$baseUrl/models/$modelName:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -105,10 +106,20 @@ class GeminiService implements AIService {
   Future<bool> testConnection() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/models/gemini-1.5-flash?key=$apiKey'),
+        Uri.parse('$baseUrl/models/$modelName?key=$apiKey'),
       );
-      return response.statusCode == 200;
+      
+      print('Gemini API test response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print('Gemini API error: ${response.statusCode} - ${response.body}');
+        return false;
+      }
     } catch (e) {
+      print('Gemini API connection error: $e');
       return false;
     }
   }
