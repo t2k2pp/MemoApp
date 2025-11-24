@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/stroke.dart';
 import '../utils/pointer_utils.dart';
 
@@ -51,6 +54,8 @@ class StrokePainter extends CustomPainter {
 class HandwritingCanvas extends StatefulWidget {
   final List<Stroke> strokes;
   final ValueChanged<List<Stroke>> onStrokesChanged;
+  final String? pastedImageData; // Base64 encoded image
+  final ValueChanged<String?>? onImageChanged;
   final bool enableTouchDrawing;
   final VoidCallback? onTouchModeToggleRequested;
 
@@ -58,6 +63,8 @@ class HandwritingCanvas extends StatefulWidget {
     super.key,
     required this.strokes,
     required this.onStrokesChanged,
+    this.pastedImageData,
+    this.onImageChanged,
     this.enableTouchDrawing = false,
     this.onTouchModeToggleRequested,
   });
@@ -96,10 +103,35 @@ class _HandwritingCanvasState extends State<HandwritingCanvas> {
   static const double _mediumWidth = 4.0;
   static const double _thickWidth = 8.0;
 
+  // Image picker
+  final ImagePicker _imagePicker = ImagePicker();
+
   @override
   void dispose() {
     _transformController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        widget.onImageChanged?.call(base64Image);
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+  }
+
+  void _removeImage() {
+    widget.onImageChanged?.call(null);
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -251,6 +283,29 @@ class _HandwritingCanvasState extends State<HandwritingCanvas> {
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
 
+              const SizedBox(width: 8),
+              const VerticalDivider(),
+              const SizedBox(width: 8),
+
+              // Image paste
+              if (widget.pastedImageData == null)
+                IconButton(
+                  icon: const Icon(Icons.image, size: 20),
+                  onPressed: _pickImage,
+                  tooltip: '画像を貼り付け',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.image_not_supported, size: 20),
+                  onPressed: _removeImage,
+                  tooltip: '画像を削除',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  color: Colors.red,
+                ),
+
               const Spacer(),
 
               // Pan/Draw mode toggle
@@ -349,31 +404,45 @@ class _HandwritingCanvasState extends State<HandwritingCanvas> {
         Expanded(
           child: Container(
             color: Colors.white,
-            child: widget.enableTouchDrawing
-                ? Listener(
-                    onPointerDown: _onPointerDown,
-                    onPointerMove: _onPointerMove,
-                    onPointerUp: _onPointerUp,
-                    child: CustomPaint(
-                      painter: StrokePainter(
-                        strokes: widget.strokes,
-                        currentStroke: _currentStroke,
-                      ),
-                      size: Size.infinite,
+            child: Stack(
+              children: [
+                // Background image if pasted
+                if (widget.pastedImageData != null)
+                  Positioned.fill(
+                    child: Image.memory(
+                      base64Decode(widget.pastedImageData!),
+                      fit: BoxFit.contain,
                     ),
-                  )
-                : InteractiveViewer(
-                    transformationController: _transformController,
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    minScale: 0.5,
-                    maxScale: 4.0,
-                    child: CustomPaint(
-                      painter: StrokePainter(
-                        strokes: widget.strokes,
-                        currentStroke: null,
+                  ),
+                // Drawing canvas
+                widget.enableTouchDrawing
+                    ? Listener(
+                        onPointerDown: _onPointerDown,
+                        onPointerMove: _onPointerMove,
+                        onPointerUp: _onPointerUp,
+                        child: CustomPaint(
+                          painter: StrokePainter(
+                            strokes: widget.strokes,
+                            currentStroke: _currentStroke,
+                          ),
+                          size: Size.infinite,
+                        ),
+                      )
+                    : InteractiveViewer(
+                        transformationController: _transformController,
+                        boundaryMargin: const EdgeInsets.all(double.infinity),
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: CustomPaint(
+                          painter: StrokePainter(
+                            strokes: widget.strokes,
+                            currentStroke: null,
+                          ),
+                          size: Size.infinite,
+                        ),
                       ),
-                      size: Size.infinite,
-                    ),
+              ],
+            ),
                   ),
           ),
         ),

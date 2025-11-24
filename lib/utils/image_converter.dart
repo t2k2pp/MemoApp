@@ -6,22 +6,59 @@ import '../models/stroke.dart';
 /// Utility class for converting canvas strokes to images
 class ImageConverter {
   /// Convert a list of strokes to an image for OCR processing
+  /// Automatically crops to stroke bounds for better resolution
   static Future<Uint8List?> strokesToImage(
     List<Stroke> strokes, {
-    double width = 800,
-    double height = 600,
+    double? width,
+    double? height,
+    double padding = 20.0,
   }) async {
     if (strokes.isEmpty) return null;
+
+    // Calculate bounding box
+    final bounds = getStrokesBounds(strokes);
+    if (bounds == null) return null;
+
+    // Add padding
+    final paddedBounds = Rect.fromLTRB(
+      bounds.left - padding,
+      bounds.top - padding,
+      bounds.right + padding,
+      bounds.bottom + padding,
+    );
+
+    // Use actual bounds size for better resolution
+    // or use provided dimensions
+    final imgWidth = width?.toInt() ?? paddedBounds.width.toInt();
+    final imgHeight = height?.toInt() ?? paddedBounds.height.toInt();
+
+    // Ensure minimum size for OCR
+    final minDimension = 400;
+    final scale = (imgWidth < minDimension || imgHeight < minDimension)
+        ? minDimension / (imgWidth < imgHeight ? imgWidth : imgHeight)
+        : 1.0;
+
+    final finalWidth = (imgWidth * scale).toInt();
+    final finalHeight = (imgHeight * scale).toInt();
 
     // Create a picture recorder
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
+    // Apply scale and translation
+    canvas.scale(scale);
+    canvas.translate(-paddedBounds.left, -paddedBounds.top);
+
     // White background
-    final paint = Paint()..color = const ui.Color(0xFFFFFFFF);
+    final bgPaint = Paint()..color = const ui.Color(0xFFFFFFFF);
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, width, height),
-      paint,
+      Rect.fromLTWH(
+        paddedBounds.left,
+        paddedBounds.top,
+        paddedBounds.width,
+        paddedBounds.height,
+      ),
+      bgPaint,
     );
 
     // Draw all strokes
@@ -43,7 +80,7 @@ class ImageConverter {
 
     // Convert to image
     final picture = recorder.endRecording();
-    final image = await picture.toImage(width.toInt(), height.toInt());
+    final image = await picture.toImage(finalWidth, finalHeight);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
     return byteData?.buffer.asUint8List();

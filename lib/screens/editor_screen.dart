@@ -78,9 +78,12 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    if (_memo.strokes.isEmpty) {
+    final hasStrokes = _memo.strokes.isNotEmpty;
+    final hasImage = _memo.pastedImage != null;
+
+    if (!hasStrokes && !hasImage) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('手書きメモがありません')),
+        const SnackBar(content: Text('手書きメモまたは画像がありません')),
       );
       return;
     }
@@ -92,7 +95,18 @@ class _EditorScreenState extends State<EditorScreen> {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    final ocrText = await memoProvider.performOCR(_memo, settingsProvider.activeService!);
+    String? ocrText;
+
+    // Perform OCR on both if available
+    if (hasStrokes && hasImage) {
+      final strokeText = await memoProvider.performOCR(_memo, settingsProvider.activeService!);
+      final imageText = await memoProvider.performImageOCR(_memo, settingsProvider.activeService!);
+      ocrText = [strokeText, imageText].where((t) => t != null && t.isNotEmpty).join('\n\n');
+    } else if (hasStrokes) {
+      ocrText = await memoProvider.performOCR(_memo, settingsProvider.activeService!);
+    } else if (hasImage) {
+      ocrText = await memoProvider.performImageOCR(_memo, settingsProvider.activeService!);
+    }
 
     if (context.mounted) {
       Navigator.pop(context); // Close loading dialog
@@ -463,9 +477,16 @@ class _EditorScreenState extends State<EditorScreen> {
   Widget _buildHandwritingEditor() {
     return HandwritingCanvas(
       strokes: _memo.strokes,
+      pastedImageData: _memo.pastedImage,
       onStrokesChanged: (strokes) {
         setState(() {
           _memo.strokes = strokes;
+        });
+        _saveMemo();
+      },
+      onImageChanged: (imageData) {
+        setState(() {
+          _memo.pastedImage = imageData;
         });
         _saveMemo();
       },

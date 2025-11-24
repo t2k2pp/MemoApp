@@ -9,6 +9,7 @@ class Memo {
   List<Stroke> strokes; // Handwriting data
   List<String> tags;
   String? ocrText; // OCR result from handwriting
+  String? pastedImage; // Base64 encoded pasted image
   DateTime createdAt;
   DateTime updatedAt;
   Color? backgroundColor;
@@ -20,6 +21,7 @@ class Memo {
     List<Stroke>? strokes,
     List<String>? tags,
     this.ocrText,
+    this.pastedImage,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.backgroundColor,
@@ -37,6 +39,7 @@ class Memo {
       'strokes': strokes.map((s) => s.toJson()).toList(),
       'tags': tags,
       'ocrText': ocrText,
+      'pastedImage': pastedImage,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'backgroundColor': backgroundColor?.value,
@@ -55,6 +58,7 @@ class Memo {
           [],
       tags: (json['tags'] as List?)?.cast<String>() ?? [],
       ocrText: json['ocrText'],
+      pastedImage: json['pastedImage'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
       backgroundColor: json['backgroundColor'] != null
@@ -71,6 +75,7 @@ class Memo {
     List<Stroke>? strokes,
     List<String>? tags,
     String? ocrText,
+    String? pastedImage,
     DateTime? createdAt,
     DateTime? updatedAt,
     Color? backgroundColor,
@@ -82,6 +87,7 @@ class Memo {
       strokes: strokes ?? this.strokes,
       tags: tags ?? this.tags,
       ocrText: ocrText ?? this.ocrText,
+      pastedImage: pastedImage ?? this.pastedImage,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       backgroundColor: backgroundColor ?? this.backgroundColor,

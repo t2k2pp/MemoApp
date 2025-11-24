@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/memo.dart';
@@ -175,6 +176,43 @@ class MemoProvider extends ChangeNotifier {
       return ocrText;
     } catch (e) {
       _errorMessage = 'OCR failed: $e';
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Perform OCR on pasted image
+  Future<String?> performImageOCR(Memo memo, AIService aiService) async {
+    if (memo.pastedImage == null) {
+      _errorMessage = 'No pasted image to analyze';
+      notifyListeners();
+      return null;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Decode base64 image
+      final imageBytes = base64.decode(memo.pastedImage!);
+
+      // Perform OCR
+      final ocrText = await aiService.performOCR(imageBytes);
+      
+      // Append to existing OCR text or replace
+      if (memo.ocrText != null && memo.ocrText!.isNotEmpty) {
+        memo.ocrText = '${memo.ocrText}\n\n[画像からのOCR]\n$ocrText';
+      } else {
+        memo.ocrText = ocrText;
+      }
+      await updateMemo(memo);
+
+      _errorMessage = null;
+      return ocrText;
+    } catch (e) {
+      _errorMessage = 'Image OCR failed: $e';
       return null;
     } finally {
       _isLoading = false;
