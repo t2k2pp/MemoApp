@@ -98,17 +98,73 @@ class _EditorScreenState extends State<EditorScreen> {
       Navigator.pop(context); // Close loading dialog
 
       if (ocrText != null && ocrText.isNotEmpty) {
+        // Show editable OCR result dialog
+        final TextEditingController ocrController = TextEditingController(text: ocrText);
+        
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('OCR結果'),
             content: SingleChildScrollView(
-              child: Text(ocrText),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '認識されたテキストを確認・編集してください:',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: ocrController,
+                    maxLines: 10,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '認識されたテキスト',
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                onPressed: () {
+                  ocrController.dispose();
+                  Navigator.pop(context);
+                },
+                child: const Text('キャンセル'),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Insert into title
+                  setState(() {
+                    if (_titleController.text.isEmpty) {
+                      _titleController.text = ocrController.text;
+                    } else {
+                      _titleController.text += '\n' + ocrController.text;
+                    }
+                  });
+                  ocrController.dispose();
+                  Navigator.pop(context);
+                  _saveMemo();
+                },
+                child: const Text('タイトルに挿入'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  // Insert into content
+                  setState(() {
+                    if (_contentController.text.isEmpty) {
+                      _contentController.text = ocrController.text;
+                    } else {
+                      _contentController.text += '\n\n' + ocrController.text;
+                    }
+                  });
+                  ocrController.dispose();
+                  Navigator.pop(context);
+                  _saveMemo();
+                },
+                child: const Text('内容に挿入'),
               ),
             ],
           ),

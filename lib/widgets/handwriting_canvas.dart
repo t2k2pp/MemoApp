@@ -154,24 +154,22 @@ class _HandwritingCanvasState extends State<HandwritingCanvas> {
               IconButton(
                 icon: const Icon(Icons.undo),
                 onPressed: widget.strokes.isEmpty ? null : _undo,
-                tooltip: 'Undo',
+                tooltip: '元に戻す',
               ),
               IconButton(
                 icon: const Icon(Icons.clear),
                 onPressed: widget.strokes.isEmpty ? null : _clearCanvas,
-                tooltip: 'Clear',
+                tooltip: 'クリア',
               ),
               const Spacer(),
-              if (!PointerUtils.isStylus(
-                  PointerDownEvent(pointer: 0)))
-                TextButton.icon(
-                  onPressed: widget.onTouchModeToggleRequested,
-                  icon: Icon(
-                    widget.enableTouchDrawing ? Icons.pan_tool : Icons.draw,
-                  ),
-                  label: Text(
-                      widget.enableTouchDrawing ? 'Pan Mode' : 'Draw Mode'),
+              TextButton.icon(
+                onPressed: widget.onTouchModeToggleRequested,
+                icon: Icon(
+                  widget.enableTouchDrawing ? Icons.pan_tool : Icons.draw,
                 ),
+                label: Text(
+                    widget.enableTouchDrawing ? 'パンモード' : '描画モード'),
+              ),
             ],
           ),
         ),
@@ -180,32 +178,32 @@ class _HandwritingCanvasState extends State<HandwritingCanvas> {
         Expanded(
           child: Container(
             color: Colors.white,
-            child: Listener(
-              onPointerDown: _onPointerDown,
-              onPointerMove: _onPointerMove,
-              onPointerUp: _onPointerUp,
-              child: widget.enableTouchDrawing
-                  ? CustomPaint(
+            child: widget.enableTouchDrawing
+                ? Listener(
+                    onPointerDown: _onPointerDown,
+                    onPointerMove: _onPointerMove,
+                    onPointerUp: _onPointerUp,
+                    child: CustomPaint(
                       painter: StrokePainter(
                         strokes: widget.strokes,
                         currentStroke: _currentStroke,
                       ),
                       size: Size.infinite,
-                    )
-                  : InteractiveViewer(
-                      transformationController: _transformController,
-                      boundaryMargin: const EdgeInsets.all(double.infinity),
-                      minScale: 0.5,
-                      maxScale: 4.0,
-                      child: CustomPaint(
-                        painter: StrokePainter(
-                          strokes: widget.strokes,
-                          currentStroke: _currentStroke,
-                        ),
-                        size: Size.infinite,
-                      ),
                     ),
-            ),
+                  )
+                : InteractiveViewer(
+                    transformationController: _transformController,
+                    boundaryMargin: const EdgeInsets.all(double.infinity),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: CustomPaint(
+                      painter: StrokePainter(
+                        strokes: widget.strokes,
+                        currentStroke: null,
+                      ),
+                      size: Size.infinite,
+                    ),
+                  ),
           ),
         ),
       ],

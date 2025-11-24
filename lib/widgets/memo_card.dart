@@ -117,7 +117,7 @@ class MemoCard extends StatelessWidget {
   }
 }
 
-/// Simple painter for memo preview
+/// Simple painter for memo preview with automatic scaling
 class _MemoStrokePainter extends CustomPainter {
   final List<Stroke> strokes;
 
@@ -125,17 +125,64 @@ class _MemoStrokePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (strokes.isEmpty) return;
+
+    // Calculate bounding box of all strokes
+    double minX = double.infinity;
+    double minY = double.infinity;
+    double maxX = double.negativeInfinity;
+    double maxY = double.negativeInfinity;
+
     for (final stroke in strokes) {
-      if (stroke.points.length < 2) continue;
+      for (final point in stroke.points) {
+        if (point.dx < minX) minX = point.dx;
+        if (point.dy < minY) minY = point.dy;
+        if (point.dx > maxX) maxX = point.dx;
+        if (point.dy > maxY) maxY = point.dy;
+      }
+    }
 
-      final paint = Paint()
-        ..color = stroke.color
-        ..strokeWidth = stroke.strokeWidth * 0.7 // Slightly smaller for preview
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
+    // If bounds are valid, apply scaling
+    if (minX < double.infinity && maxX > double.negativeInfinity) {
+      final strokeWidth = maxX - minX;
+      final strokeHeight = maxY - minY;
 
-      for (int i = 0; i < stroke.points.length - 1; i++) {
-        canvas.drawLine(stroke.points[i], stroke.points[i + 1], paint);
+      if (strokeWidth > 0 && strokeHeight > 0) {
+        // Calculate scale to fit in the available size with padding
+        final padding = 10.0;
+        final availableWidth = size.width - padding * 2;
+        final availableHeight = size.height - padding * 2;
+        
+        final scaleX = availableWidth / strokeWidth;
+        final scaleY = availableHeight / strokeHeight;
+        final scale = scaleX < scaleY ? scaleX : scaleY;
+
+        // Center the drawing
+        final scaledWidth = strokeWidth * scale;
+        final scaledHeight = strokeHeight * scale;
+        final offsetX = (size.width - scaledWidth) / 2 - minX * scale;
+        final offsetY = (size.height - scaledHeight) / 2 - minY * scale;
+
+        canvas.save();
+        canvas.translate(offsetX, offsetY);
+        canvas.scale(scale);
+
+        // Draw all strokes
+        for (final stroke in strokes) {
+          if (stroke.points.length < 2) continue;
+
+          final paint = Paint()
+            ..color = stroke.color
+            ..strokeWidth = stroke.strokeWidth
+            ..strokeCap = StrokeCap.round
+            ..style = PaintingStyle.stroke;
+
+          for (int i = 0; i < stroke.points.length - 1; i++) {
+            canvas.drawLine(stroke.points[i], stroke.points[i + 1], paint);
+          }
+        }
+
+        canvas.restore();
       }
     }
   }
@@ -145,3 +192,4 @@ class _MemoStrokePainter extends CustomPainter {
     return oldDelegate.strokes != strokes;
   }
 }
+

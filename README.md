@@ -49,9 +49,9 @@ flutter pub get
 
 2. **実行**
 
-#### Web版 (推奨: CanvasKit使用)
+#### Web版
 ```bash
-flutter run -d chrome --web-renderer canvaskit
+flutter run -d chrome
 ```
 
 #### Android
@@ -68,7 +68,7 @@ flutter run -d ios
 
 #### Web版
 ```bash
-flutter build web --web-renderer canvaskit
+flutter build web
 ```
 
 #### Android
