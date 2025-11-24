@@ -1,40 +1,27 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/memo.dart';
 import '../models/ai_config.dart';
 
 /// Service for persisting memos and settings
 class StorageService {
-  static const String _memosListKey = 'memos_list';
+  static const String _memosKey = 'memos_data';
   static const String _aiConfigKey = 'ai_config';
-  static const String _memosDirName = 'memos';
 
-  /// Get memos directory
-  Future<Directory> get _memosDir async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final memosDir = Directory('${appDir.path}/$_memosDirName');
-    if (!await memosDir.exists()) {
-      await memosDir.create(recursive: true);
-    }
-    return memosDir;
-  }
-
-  /// Save a memo to disk
+  /// Save a memo
   Future<void> saveMemo(Memo memo) async {
     try {
-      final dir = await _memosDir;
-      final file = File('${dir.path}/${memo.id}.json');
-      await file.writeAsString(jsonEncode(memo.toJson()));
-
-      // Update memos list
       final prefs = await SharedPreferences.getInstance();
-      final memosList = prefs.getStringList(_memosListKey) ?? [];
-      if (!memosList.contains(memo.id)) {
-        memosList.add(memo.id);
-        await prefs.setStringList(_memosListKey, memosList);
-      }
+      
+      // Load existing memos
+      final memosMap = await _loadMemosMap();
+      
+      // Add or update memo
+      memosMap[memo.id] = memo.toJson();
+      
+      // Save back to SharedPreferences
+      await prefs.setString(_memosKey, jsonEncode(memosMap));
     } catch (e) {
       throw StorageException('Failed to save memo: $e');
     }
@@ -43,12 +30,11 @@ class StorageService {
   /// Load a memo by ID
   Future<Memo?> loadMemo(String id) async {
     try {
-      final dir = await _memosDir;
-      final file = File('${dir.path}/$id.json');
-      if (!await file.exists()) return null;
-
-      final jsonString = await file.readAsString();
-      return Memo.fromJson(jsonDecode(jsonString));
+      final memosMap = await _loadMemosMap();
+      final memoJson = memosMap[id];
+      if (memoJson == null) return null;
+      
+      return Memo.fromJson(memoJson as Map<String, dynamic>);
     } catch (e) {
       print('Error loading memo $id: $e');
       return null;
@@ -58,41 +44,59 @@ class StorageService {
   /// Load all memos
   Future<List<Memo>> loadAllMemos() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final memosList = prefs.getStringList(_memosListKey) ?? [];
-
+      final memosMap = await _loadMemosMap();
       final memos = <Memo>[];
-      for (final id in memosList) {
-        final memo = await loadMemo(id);
-        if (memo != null) {
+      
+      for (final memoJson in memosMap.values) {
+        try {
+          final memo = Memo.fromJson(memoJson as Map<String, dynamic>);
           memos.add(memo);
+        } catch (e) {
+          print('Error parsing memo: $e');
         }
       }
-
+      
       // Sort by updated date (newest first)
       memos.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return memos;
     } catch (e) {
-      throw StorageException('Failed to load memos: $e');
+      print('Error loading all memos: $e');
+      return [];
     }
   }
 
   /// Delete a memo
   Future<void> deleteMemo(String id) async {
     try {
-      final dir = await _memosDir;
-      final file = File('${dir.path}/$id.json');
-      if (await file.exists()) {
-        await file.delete();
-      }
-
-      // Update memos list
       final prefs = await SharedPreferences.getInstance();
-      final memosList = prefs.getStringList(_memosListKey) ?? [];
-      memosList.remove(id);
-      await prefs.setStringList(_memosListKey, memosList);
+      final memosMap = await _loadMemosMap();
+      
+      memosMap.remove(id);
+      
+      await prefs.setString(_memosKey, jsonEncode(memosMap));
     } catch (e) {
       throw StorageException('Failed to delete memo: $e');
+    }
+  }
+
+  /// Load memos map from SharedPreferences
+  Future<Map<String, dynamic>> _loadMemosMap() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_memosKey);
+      
+      if (jsonString == null || jsonString.isEmpty) {
+        return {};
+      }
+      
+      final decoded = jsonDecode(jsonString);
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+      return {};
+    } catch (e) {
+      print('Error loading memos map: $e');
+      return {};
     }
   }
 
