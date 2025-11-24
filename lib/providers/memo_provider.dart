@@ -107,33 +107,6 @@ class MemoProvider extends ChangeNotifier {
     }
 
     return memo;
-  }
-
-  /// Update an existing memo
-  Future<void> updateMemo(Memo memo) async {
-    final index = _memos.indexWhere((m) => m.id == memo.id);
-    if (index != -1) {
-      memo.updatedAt = DateTime.now();
-      _memos[index] = memo;
-      
-      // Move to top (most recent)
-      _memos.removeAt(index);
-      _memos.insert(0, memo);
-      
-      notifyListeners();
-
-      try {
-        await _storageService.saveMemo(memo);
-        _errorMessage = null;
-      } catch (e) {
-        _errorMessage = 'Failed to update memo: $e';
-      }
-    }
-  }
-
-  /// Delete a memo
-  Future<void> deleteMemo(String id) async {
-    final index = _memos.indexWhere((m) => m.id == id);
     if (index != -1) {
       _memos.removeAt(index);
       notifyListeners();

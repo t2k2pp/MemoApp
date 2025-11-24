@@ -440,6 +440,49 @@ class _EditorScreenState extends State<EditorScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          // Text Decoration Toolbar
+          if (_isTextMode)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.format_bold),
+                    onPressed: _toggleBold,
+                    tooltip: '太字',
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    iconSize: 20,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_italic),
+                    onPressed: _toggleItalic,
+                    tooltip: 'イタリック',
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    iconSize: 20,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.title),
+                    onPressed: _toggleHeading,
+                    tooltip: '見出し',
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    iconSize: 20,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_list_bulleted),
+                    onPressed: _toggleList,
+                    tooltip: '箇条書き',
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    iconSize: 20,
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          
           TextField(
             controller: _titleController,
             decoration: const InputDecoration(
@@ -473,6 +516,97 @@ class _EditorScreenState extends State<EditorScreen> {
         ],
       ),
     );
+  }
+
+  void _toggleBold() {
+    _wrapSelection('**');
+  }
+
+  void _toggleItalic() {
+    _wrapSelection('*');
+  }
+
+  void _wrapSelection(String symbol) {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    
+    if (!selection.isValid) return;
+
+    final newText = text.replaceRange(
+      selection.start,
+      selection.end,
+      '$symbol${selection.textInside(text)}$symbol',
+    );
+
+    _contentController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(
+        baseOffset: selection.start + symbol.length,
+        extentOffset: selection.end + symbol.length,
+      ),
+    );
+    _saveMemo();
+  }
+
+  void _toggleHeading() {
+    _toggleLinePrefix(['# ', '## ', '### ']);
+  }
+
+  void _toggleList() {
+    _toggleLinePrefix(['- ']);
+  }
+
+  void _toggleLinePrefix(List<String> prefixes) {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    
+    if (!selection.isValid) return;
+
+    // Find start of the line
+    final lineStart = text.lastIndexOf('\n', selection.start - 1) + 1;
+    // Find end of the line (for replacing)
+    var lineEnd = text.indexOf('\n', selection.start);
+    if (lineEnd == -1) lineEnd = text.length;
+
+    final currentLine = text.substring(lineStart, lineEnd);
+    
+    String newPrefix = prefixes[0];
+    String newLine = currentLine;
+    
+    // Check if line already has one of the prefixes
+    bool hasPrefix = false;
+    for (int i = 0; i < prefixes.length; i++) {
+      if (currentLine.startsWith(prefixes[i])) {
+        // If it's the last prefix, remove it (toggle off)
+        // If it's not the last, switch to next prefix (cycle)
+        if (prefixes.length > 1) {
+           if (i == prefixes.length - 1) {
+             newLine = currentLine.substring(prefixes[i].length);
+           } else {
+             newLine = prefixes[i + 1] + currentLine.substring(prefixes[i].length);
+           }
+        } else {
+          // Single prefix toggle
+          newLine = currentLine.substring(prefixes[i].length);
+        }
+        hasPrefix = true;
+        break;
+      }
+    }
+
+    if (!hasPrefix) {
+      newLine = newPrefix + currentLine;
+    }
+
+    final newText = text.replaceRange(lineStart, lineEnd, newLine);
+    
+    _contentController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: selection.start + (newLine.length - currentLine.length),
+      ),
+    );
+    _saveMemo();
   }
 
   Widget _buildHandwritingEditor() {

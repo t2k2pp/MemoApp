@@ -255,7 +255,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     return MemoCard(
                       memo: memo,
                       onTap: () => _openEditor(context, memo.id),
-                      onLongPress: () =>
+                      onDuplicate: () async {
+                        final provider = Provider.of<MemoProvider>(context, listen: false);
+                        await provider.duplicateMemo(memo);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('メモを複製しました')),
+                          );
+                        }
+                      },
+                      onDelete: () =>
                           _showDeleteDialog(context, memo.id, memo.title),
                     );
                   },

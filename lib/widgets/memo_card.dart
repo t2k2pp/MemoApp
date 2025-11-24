@@ -5,14 +5,15 @@ import '../models/stroke.dart';
 /// Widget for displaying a memo card in the grid/list view
 class MemoCard extends StatelessWidget {
   final Memo memo;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
+  final VoidCallback? onDuplicate;
+  final VoidCallback? onDelete;
 
   const MemoCard({
     super.key,
     required this.memo,
     required this.onTap,
-    this.onLongPress,
+    this.onDuplicate,
+    this.onDelete,
   });
 
   @override
@@ -25,92 +26,135 @@ class MemoCard extends StatelessWidget {
       elevation: 2,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Title
-              if (memo.title.isNotEmpty)
-                Text(
-                  memo.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              if (memo.title.isNotEmpty) const SizedBox(height: 8),
-
-              // Content preview
-              if (memo.content.isNotEmpty)
-                Text(
-                  memo.content,
-                  style: const TextStyle(fontSize: 14),
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-              // Handwriting preview
-              if (hasStrokes && !hasContent)
-                SizedBox(
-                  height: 100,
-                  child: CustomPaint(
-                    painter: _MemoStrokePainter(strokes: memo.strokes),
-                    size: const Size(double.infinity, 100),
-                  ),
-                ),
-
-              // Tags
-              if (memo.tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: memo.tags.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  if (memo.title.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 24.0), // Space for menu
                       child: Text(
-                        tag,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.blue[900],
+                        memo.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-
-              // OCR indicator
-              if (memo.ocrText != null && memo.ocrText!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.text_fields, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      'OCR済み',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                  if (memo.title.isNotEmpty) const SizedBox(height: 8),
+
+                  // Content preview
+                  if (memo.content.isNotEmpty)
+                    Text(
+                      memo.content,
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                  // Handwriting preview
+                  if (hasStrokes && !hasContent)
+                    SizedBox(
+                      height: 100,
+                      child: CustomPaint(
+                        painter: _MemoStrokePainter(strokes: memo.strokes),
+                        size: const Size(double.infinity, 100),
+                      ),
+                    ),
+
+                  // Tags
+                  if (memo.tags.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: memo.tags.map((tag) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.blue[900],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
-                ),
-              ],
-            ],
-          ),
+
+                  // OCR indicator
+                  if (memo.ocrText != null && memo.ocrText!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.text_fields, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'OCR済み',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Menu button
+            Positioned(
+              top: 0,
+              right: 0,
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'duplicate') {
+                    onDuplicate?.call();
+                  } else if (value == 'delete') {
+                    onDelete?.call();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'duplicate',
+                    child: Row(
+                      children: [
+                        Icon(Icons.copy, size: 20),
+                        SizedBox(width: 8),
+                        Text('複製'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, size: 20, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('削除', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
