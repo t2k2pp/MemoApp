@@ -8,7 +8,7 @@ class GeminiService implements AIService {
   final String apiKey;
   static const String baseUrl =
       'https://generativelanguage.googleapis.com/v1';
-  static const String modelName = 'gemini-2.0-flash-exp';
+  static const String modelName = 'gemini-2.5-flash';
 
   GeminiService({required this.apiKey});
 
