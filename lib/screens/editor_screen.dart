@@ -329,6 +329,27 @@ class _EditorScreenState extends State<EditorScreen> {
                               );
                             } else {
                               // Replace all
+                              _contentController.text = rewrittenText!;
+                            }
+                            Navigator.pop(context); // Close confirmation
+                            Navigator.pop(context); // Close rewrite dialog
+                          },
+                          child: const Text('置き換え'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: const Text('置き換え'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
